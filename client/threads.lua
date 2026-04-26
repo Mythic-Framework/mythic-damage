@@ -5,6 +5,15 @@ local _lastDamage = {
     melee = false
 }
 
+-- gas weapons fire CEventNetworkEntityDamage many times per second!!!! 
+-- throttle BoneDamage to once per second per hash to prevent reliable network event overflow :( if theres a better way pr it plz
+local _gasWeapons = {
+    [GetHashKey('WEAPON_SMOKEGRENADE')] = true,
+    [GetHashKey('WEAPON_BZGAS')]        = true,
+    [GetHashKey('WEAPON_TEARGAS')]      = true,
+}
+local _gasDamageCooldown = {}
+
 AddEventHandler("Damage:Client:Triggers:EntityDamaged", function(victim, attacker, pWeapon, isMelee)
     if victim ~= PlayerPedId() then return end
 
@@ -19,6 +28,12 @@ AddEventHandler("Damage:Client:Triggers:EntityDamaged", function(victim, attacke
         melee = isMelee,
         bone = bone,
     }
+
+    if _gasWeapons[pWeapon] then
+        local now = GetGameTimer()
+        if _gasDamageCooldown[pWeapon] and now < _gasDamageCooldown[pWeapon] then return end
+        _gasDamageCooldown[pWeapon] = now + 1000
+    end
 
     TriggerServerEvent("Damage:Server:BoneDamage", _lastDamage)
 
